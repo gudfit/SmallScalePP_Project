@@ -1,0 +1,160 @@
+-------------------------------------------
+Testing: n = 512, k = 32
+Multiplication time:  0.0135784 s
+Total time:           0.0135794 s
+Performance:          1.23549 GFLOPS
+Reference multiplication time: 0.0260777 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 512, k = 48
+Multiplication time:  0.00545228 s
+Total time:           0.00545291 s
+Performance:          4.61512 GFLOPS
+Reference multiplication time: 0.0353159 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 512, k = 64
+Multiplication time:  0.0066044 s
+Total time:           0.00660525 s
+Performance:          5.07996 GFLOPS
+Reference multiplication time: 0.0471267 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 512, k = 96
+Multiplication time:  0.00940731 s
+Total time:           0.00940801 s
+Performance:          5.34987 GFLOPS
+Reference multiplication time: 0.0739917 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 512, k = 128
+Multiplication time:  0.0117069 s
+Total time:           0.0117075 s
+Performance:          5.73212 GFLOPS
+Reference multiplication time: 0.101863 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 1024, k = 32
+Multiplication time:  0.0179449 s
+Total time:           0.017946 s
+Performance:          3.73948 GFLOPS
+Reference multiplication time: 0.0909825 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 1024, k = 48
+Multiplication time:  0.0215971 s
+Total time:           0.0215983 s
+Performance:          4.6607 GFLOPS
+Reference multiplication time: 0.137814 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 1024, k = 64
+Multiplication time:  0.0338165 s
+Total time:           0.0338177 s
+Performance:          3.96886 GFLOPS
+Reference multiplication time: 0.192833 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 1024, k = 96
+Multiplication time:  0.0446295 s
+Total time:           0.0446304 s
+Performance:          4.51097 GFLOPS
+Reference multiplication time: 0.298161 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 1024, k = 128
+Multiplication time:  0.046807 s
+Total time:           0.0468079 s
+Performance:          5.73483 GFLOPS
+Reference multiplication time: 0.399798 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 2048, k = 32
+Multiplication time:  0.0448354 s
+Total time:           0.0448363 s
+Performance:          5.98701 GFLOPS
+Reference multiplication time: 0.374284 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 2048, k = 48
+Multiplication time:  0.0659357 s
+Total time:           0.0659366 s
+Performance:          6.10667 GFLOPS
+Reference multiplication time: 0.544469 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 2048, k = 64
+Multiplication time:  0.0881161 s
+Total time:           0.0881169 s
+Performance:          6.09271 GFLOPS
+Reference multiplication time: 0.747585 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 2048, k = 96
+Multiplication time:  0.178434 s
+Total time:           0.178435 s
+Performance:          4.51316 GFLOPS
+Reference multiplication time: 1.23245 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 2048, k = 128
+Multiplication time:  0.200223 s
+Total time:           0.200224 s
+Performance:          5.36271 GFLOPS
+Reference multiplication time: 1.67878 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 4096, k = 32
+Multiplication time:  0.178416 s
+Total time:           0.178416 s
+Performance:          6.01818 GFLOPS
+Reference multiplication time: 1.48773 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 4096, k = 48
+Multiplication time:  0.260195 s
+Total time:           0.260196 s
+Performance:          6.18999 GFLOPS
+Reference multiplication time: 2.23347 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 4096, k = 64
+Multiplication time:  0.346896 s
+Total time:           0.346897 s
+Performance:          6.19056 GFLOPS
+Reference multiplication time: 2.99528 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 4096, k = 96
+Multiplication time:  0.561357 s
+Total time:           0.561358 s
+Performance:          5.73827 GFLOPS
+Reference multiplication time: 5.03918 s
+Maximum difference with reference: 0
+Correctness test PASSED.
+-------------------------------------------
+Testing: n = 4096, k = 128
+Multiplication time:  0.824722 s
+Total time:           0.824722 s
+Performance:          5.20777 GFLOPS
+Reference multiplication time: 8.05707 s
+Maximum difference with reference: 0
+Correctness test PASSED.

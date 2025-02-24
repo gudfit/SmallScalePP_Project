@@ -1,0 +1,21 @@
+#!/bin/bash
+##
+## MPI submission script for PBS on CRESCENT
+## -----------------------------------------
+#PBS -N openMPTest
+#PBS -l select=1:ncpus=8:mpiprocs=1:ngpus=1
+#PBS -q gpu_V100
+#PBS -m abe 
+#PBS -M xxxxx@xxxxx.ac.uk
+## DO NOT CHANGE the following lines
+##------------------------------------------------
+#PBS -j oe
+#PBS -W sandbox=PRIVATE
+#PBS -k n
+ln -s $PWD $PBS_O_WORKDIR/$PBS_JOBID
+## Change to working directory
+cd $PBS_O_WORKDIR
+export cpus=`cat $PBS_NODEFILE | wc -l`
+## Run the application
+./matmul
+/bin/rm -f ./$PBS_JOBID
