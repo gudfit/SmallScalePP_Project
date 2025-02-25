@@ -73,7 +73,7 @@ __global__ void matmul_kernel_shared(const float *A, const float *BT, float *C,
 
 #pragma unroll
     for (int p = 0; p < TILE_WIDTH; ++p)
-      sum += tile_A[ty][p] * tile_BT[tx][p];
+      sum += tile_A[ty][p] * tile_BT[ty][p];
 
     __syncthreads();
   }
