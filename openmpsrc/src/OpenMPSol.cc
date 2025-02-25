@@ -62,9 +62,15 @@ public:
  */
 void transpose(const float *B, float *BT, int k, int n) {
 #pragma omp parallel for collapse(2)
-  for (int i = 0; i < k; i++)
-    for (int j = 0; j < n; j++)
-      BT[j * k + i] = B[i * n + j];
+  for (int i = 0; i < k; i += ALIGN_SIZE) {
+    for (int j = 0; j < n; j += ALIGN_SIZE) {
+      const int iend = std::min(i + ALIGN_SIZE, k);
+      const int jend = std::min(j + ALIGN_SIZE, n);
+      for (int ii = i; ii < iend; ++ii)
+        for (int jj = j; jj < jend; ++jj)
+          BT[jj * k + ii] = B[ii * n + jj];
+    }
+  }
 }
 
 /*
