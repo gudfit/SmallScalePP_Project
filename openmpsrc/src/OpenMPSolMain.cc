@@ -5,7 +5,6 @@
 #include <iostream>
 #include <omp.h>
 #include <random>
-#include <vector>
 
 int main() {
   /* Range of n values and a set of k values */
@@ -15,16 +14,16 @@ int main() {
   int max_threads = omp_get_max_threads();
   omp_set_num_threads(max_threads);
 
-  /* Each combination of n and k*/
+  /* Each combination of n and k */
   for (int n : ns) {
     for (int k : ks) {
       std::cout << "-------------------------------------------\n";
       std::cout << "Testing: n = " << n << ", k = " << k << "\n";
 
-      /* Allocate memory with std::vector */
-      std::vector<float> A(n * k);
-      std::vector<float> B(k * n);
-      std::vector<float> C(n * n, 0.0);
+      /* Allocate memory on the heap */
+      float *A = new float[n * k];
+      float *B = new float[k * n];
+      float *C = new float[n * n](); // Zero-initialized
 
       /* Initialize matrices A and B with random values using OpenMP */
       std::random_device rd;
@@ -53,7 +52,7 @@ int main() {
       auto t_start = std::chrono::high_resolution_clock::now();
 
       /* Compute C = A * B using the optimized OpenMP implementation */
-      matmul(A.data(), B.data(), C.data(), n, k);
+      matmul(A, B, C, n, k);
 
       auto t_end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> mult_time = t_end - t_start;
@@ -66,11 +65,11 @@ int main() {
       std::cout << "Total time:           " << total_time.count() << " s\n";
       std::cout << "Performance:          " << gflops << " GFLOPS\n";
 
-      /* Compute the reference multiplication using a serial implementation*/
-      std::vector<float> C_ref(n * n, 0.0);
+      /* Compute the reference multiplication using a serial implementation */
+      float *C_ref = new float[n * n](); // Zero-initialized
 
       auto ref_start = std::chrono::high_resolution_clock::now();
-      matmul_ref(A.data(), B.data(), C_ref.data(), n, k);
+      matmul_ref(A, B, C_ref, n, k);
       auto ref_end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> ref_time = ref_end - ref_start;
 
@@ -103,6 +102,12 @@ int main() {
         std::cout << "Correctness test PASSED.\n";
       else
         std::cout << "Correctness test FAILED.\n";
+
+      /* Cleanup heap memory */
+      delete[] A;
+      delete[] B;
+      delete[] C;
+      delete[] C_ref;
     }
   }
   return 0;
