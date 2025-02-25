@@ -1,11 +1,11 @@
 #include "CUDASol.cuh"
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <cuda_runtime.h>
 #include <iostream>
 #include <random>
-#include <vector>
 
 void checkCUDAError(const char *msg) {
   cudaError_t err = cudaGetLastError();
@@ -27,10 +27,10 @@ int main() {
       std::cout << "-------------------------------------------\n";
       std::cout << "Testing: n = " << n << ", k = " << k << "\n";
 
-      /* Use std::vector instead of 'new' for CPU memory allocation */
-      std::vector<double> A(n * k);
-      std::vector<double> B(k * n);
-      std::vector<double> C(n * n);
+      /* Use dynamic allocation since array sizes are determined at runtime */
+      double *A = new double[n * k];
+      double *B = new double[k * n];
+      double *C = new double[n * n];
 
       /* Initialize matrices A and B with random values */
       std::random_device rd;
@@ -50,8 +50,8 @@ int main() {
       checkCUDAError("cudaMalloc");
 
       /* Transfer A and B from CPU to GPU */
-      cudaMemcpy(d_A, A.data(), n * k * sizeof(double), cudaMemcpyHostToDevice);
-      cudaMemcpy(d_B, B.data(), k * n * sizeof(double), cudaMemcpyHostToDevice);
+      cudaMemcpy(d_A, A, n * k * sizeof(double), cudaMemcpyHostToDevice);
+      cudaMemcpy(d_B, B, k * n * sizeof(double), cudaMemcpyHostToDevice);
       checkCUDAError("cudaMemcpy HostToDevice");
 
       auto total_start = std::chrono::high_resolution_clock::now();
@@ -65,25 +65,28 @@ int main() {
 
       auto t_end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> mult_time = t_end - t_start;
+
       auto total_end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> total_time = total_end - total_start;
 
-      cudaMemcpy(C.data(), d_C, n * n * sizeof(double), cudaMemcpyDeviceToHost);
+      cudaMemcpy(C, d_C, n * n * sizeof(double), cudaMemcpyDeviceToHost);
       checkCUDAError("cudaMemcpy DeviceToHost");
 
       double flops = 2.0 * k * n * n;
       double gflops = flops / (mult_time.count() * 1e9);
+
       std::cout << "Multiplication time:  " << mult_time.count() << " s\n";
       std::cout << "Total time:           " << total_time.count() << " s\n";
       std::cout << "Performance:          " << gflops << " GFLOPS\n";
 
       // Correctness
       /* Compute the reference multiplication using a serial implementation*/
-      std::vector<double> C_ref(n * n);
+      double *C_ref = new double[n * n];
 
       auto ref_start = std::chrono::high_resolution_clock::now();
-      matmul_ref(A.data(), B.data(), C_ref.data(), n, k);
+      matmul_ref(A, B, C_ref, n, k);
       auto ref_end = std::chrono::high_resolution_clock::now();
+
       std::chrono::duration<double> ref_time = ref_end - ref_start;
 
       double max_error = 0.0;
@@ -107,6 +110,12 @@ int main() {
       cudaFree(d_A);
       cudaFree(d_B);
       cudaFree(d_C);
+
+      /* Free CPU mem */
+      delete[] A;
+      delete[] B;
+      delete[] C;
+      delete[] C_ref;
     }
   }
   return 0;

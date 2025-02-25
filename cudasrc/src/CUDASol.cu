@@ -35,34 +35,40 @@ __global__ void matmul_kernel_shared(const double *A, const double *BT,
   __shared__ double tile_A[TILE_WIDTH][TILE_WIDTH];
   __shared__ double tile_BT[TILE_WIDTH][TILE_WIDTH];
 
-  int i = blockIdx.x * blockDim.x + threadIdx.x;
-  int j = blockIdx.y * blockDim.y + threadIdx.y;
+  int bx = blockIdx.x;
+  int by = blockIdx.y;
+  int tx = threadIdx.x;
+  int ty = threadIdx.y;
+
+  int row = by * TILE_WIDTH + ty;
+  int col = bx * TILE_WIDTH + tx;
 
   double sum = 0.0;
 
   for (int t = 0; t < (k + TILE_WIDTH - 1) / TILE_WIDTH; ++t) {
-    /* Load tiles into shared memory */
-    int col_A = t * TILE_WIDTH + threadIdx.y;
-    if (i < n && col_A < k)
-      tile_A[threadIdx.x][threadIdx.y] = A[i * k + col_A];
+    int a_col = t * TILE_WIDTH + tx;
+    if (row < n && a_col < k)
+      tile_A[ty][tx] = A[row * k + a_col];
     else
-      tile_A[threadIdx.x][threadIdx.y] = 0.0;
+      tile_A[ty][tx] = 0.0;
 
-    int col_BT = t * TILE_WIDTH + threadIdx.y;
-    if (j < n && col_BT < k)
-      tile_BT[threadIdx.x][threadIdx.y] = BT[j * k + col_BT];
+    int bt_col = t * TILE_WIDTH + tx;
+    if (col < n && bt_col < k)
+      tile_BT[ty][tx] = BT[col * k + bt_col];
     else
-      tile_BT[threadIdx.x][threadIdx.y] = 0.0;
+      tile_BT[ty][tx] = 0.0;
 
     __syncthreads();
+
 #pragma unroll
     for (int p = 0; p < TILE_WIDTH; ++p)
-      sum += tile_A[threadIdx.x][p] * tile_BT[threadIdx.y][p];
+      sum += tile_A[ty][p] * tile_BT[tx][p];
+
     __syncthreads();
   }
 
-  if (i < n && j < n)
-    C[i * n + j] = sum;
+  if (row < n && col < n)
+    C[row * n + col] = sum;
 }
 
 __global__ void matmul_kernel_shared_padded(const double *A, const double *BT,
@@ -70,33 +76,40 @@ __global__ void matmul_kernel_shared_padded(const double *A, const double *BT,
   __shared__ double tile_A[TILE_WIDTH][TILE_WIDTH_PADDED];
   __shared__ double tile_BT[TILE_WIDTH][TILE_WIDTH_PADDED];
 
-  int i = blockIdx.x * blockDim.x + threadIdx.x;
-  int j = blockIdx.y * blockDim.y + threadIdx.y;
+  int bx = blockIdx.x;
+  int by = blockIdx.y;
+  int tx = threadIdx.x;
+  int ty = threadIdx.y;
+
+  int row = by * TILE_WIDTH + ty;
+  int col = bx * TILE_WIDTH + tx;
 
   double sum = 0.0;
 
   for (int t = 0; t < (k + TILE_WIDTH - 1) / TILE_WIDTH; ++t) {
-    int col_A = t * TILE_WIDTH + threadIdx.y;
-    if (i < n && col_A < k)
-      tile_A[threadIdx.x][threadIdx.y] = A[i * k + col_A];
+    int a_col = t * TILE_WIDTH + tx;
+    if (row < n && a_col < k)
+      tile_A[ty][tx] = A[row * k + a_col];
     else
-      tile_A[threadIdx.x][threadIdx.y] = 0.0;
+      tile_A[ty][tx] = 0.0;
 
-    int col_BT = t * TILE_WIDTH + threadIdx.y;
-    if (j < n && col_BT < k)
-      tile_BT[threadIdx.x][threadIdx.y] = BT[j * k + col_BT];
+    int bt_col = t * TILE_WIDTH + tx;
+    if (col < n && bt_col < k)
+      tile_BT[ty][tx] = BT[col * k + bt_col];
     else
-      tile_BT[threadIdx.x][threadIdx.y] = 0.0;
+      tile_BT[ty][tx] = 0.0;
 
     __syncthreads();
+
 #pragma unroll
     for (int p = 0; p < TILE_WIDTH; ++p)
-      sum += tile_A[threadIdx.x][p] * tile_BT[threadIdx.y][p];
+      sum += tile_A[ty][p] * tile_BT[tx][p];
+
     __syncthreads();
   }
 
-  if (i < n && j < n)
-    C[i * n + j] = sum;
+  if (row < n && col < n)
+    C[row * n + col] = sum;
 }
 
 void transpose(const double *B, double *BT, int k, int n) {
