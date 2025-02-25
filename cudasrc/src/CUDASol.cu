@@ -3,12 +3,12 @@
 #include <cuda_runtime.h>
 #include <omp.h>
 
-#define TILE_WIDTH 64
+#define TILE_WIDTH 32
 #define BLOCK_DIM 32
 
 #define TILE_WIDTH_PADDED (TILE_WIDTH + 1)
 
-__global__ void transpose_kernel(const double *B, double *BT, int k, int n) {
+__global__ void transpose_kernel(const float *B, float *BT, int k, int n) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -16,24 +16,23 @@ __global__ void transpose_kernel(const double *B, double *BT, int k, int n) {
     BT[j * k + i] = B[i * n + j];
 }
 
-__global__ void matmul_kernel(const double *A, const double *BT, double *C,
-                              int n, int k) {
+__global__ void matmul_kernel_naive(const float *A, const float *BT, float *C,
+                                    int n, int k) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
 
   if (i < n && j < n) {
-    double sum = 0.0;
+    float sum = 0.0f;
     for (int p = 0; p < k; p++)
       sum += A[i * k + p] * BT[j * k + p];
-
     C[i * n + j] = sum;
   }
 }
 
-__global__ void matmul_kernel_shared(const double *A, const double *BT,
-                                     double *C, int n, int k) {
-  __shared__ double tile_A[TILE_WIDTH][TILE_WIDTH];
-  __shared__ double tile_BT[TILE_WIDTH][TILE_WIDTH];
+__global__ void matmul_kernel_shared(const float *A, const float *BT, float *C,
+                                     int n, int k) {
+  __shared__ float tile_A[TILE_WIDTH][TILE_WIDTH];
+  __shared__ float tile_BT[TILE_WIDTH][TILE_WIDTH];
 
   int bx = blockIdx.x;
   int by = blockIdx.y;
@@ -43,20 +42,14 @@ __global__ void matmul_kernel_shared(const double *A, const double *BT,
   int row = by * TILE_WIDTH + ty;
   int col = bx * TILE_WIDTH + tx;
 
-  double sum = 0.0;
+  float sum = 0.0f;
 
   for (int t = 0; t < (k + TILE_WIDTH - 1) / TILE_WIDTH; ++t) {
     int a_col = t * TILE_WIDTH + tx;
-    if (row < n && a_col < k)
-      tile_A[ty][tx] = A[row * k + a_col];
-    else
-      tile_A[ty][tx] = 0.0;
+    tile_A[ty][tx] = (row < n && a_col < k) ? A[row * k + a_col] : 0.0f;
 
     int bt_col = t * TILE_WIDTH + tx;
-    if (col < n && bt_col < k)
-      tile_BT[ty][tx] = BT[col * k + bt_col];
-    else
-      tile_BT[ty][tx] = 0.0;
+    tile_BT[ty][tx] = (col < n && bt_col < k) ? BT[col * k + bt_col] : 0.0f;
 
     __syncthreads();
 
@@ -71,10 +64,10 @@ __global__ void matmul_kernel_shared(const double *A, const double *BT,
     C[row * n + col] = sum;
 }
 
-__global__ void matmul_kernel_shared_padded(const double *A, const double *BT,
-                                            double *C, int n, int k) {
-  __shared__ double tile_A[TILE_WIDTH][TILE_WIDTH_PADDED];
-  __shared__ double tile_BT[TILE_WIDTH][TILE_WIDTH_PADDED];
+__global__ void matmul_kernel_shared_padded(const float *A, const float *BT,
+                                            float *C, int n, int k) {
+  __shared__ float tile_A[TILE_WIDTH][TILE_WIDTH_PADDED];
+  __shared__ float tile_BT[TILE_WIDTH][TILE_WIDTH_PADDED];
 
   int bx = blockIdx.x;
   int by = blockIdx.y;
@@ -84,20 +77,14 @@ __global__ void matmul_kernel_shared_padded(const double *A, const double *BT,
   int row = by * TILE_WIDTH + ty;
   int col = bx * TILE_WIDTH + tx;
 
-  double sum = 0.0;
+  float sum = 0.0f;
 
   for (int t = 0; t < (k + TILE_WIDTH - 1) / TILE_WIDTH; ++t) {
     int a_col = t * TILE_WIDTH + tx;
-    if (row < n && a_col < k)
-      tile_A[ty][tx] = A[row * k + a_col];
-    else
-      tile_A[ty][tx] = 0.0;
+    tile_A[ty][tx] = (row < n && a_col < k) ? A[row * k + a_col] : 0.0f;
 
     int bt_col = t * TILE_WIDTH + tx;
-    if (col < n && bt_col < k)
-      tile_BT[ty][tx] = BT[col * k + bt_col];
-    else
-      tile_BT[ty][tx] = 0.0;
+    tile_BT[ty][tx] = (col < n && bt_col < k) ? BT[col * k + bt_col] : 0.0f;
 
     __syncthreads();
 
@@ -112,61 +99,49 @@ __global__ void matmul_kernel_shared_padded(const double *A, const double *BT,
     C[row * n + col] = sum;
 }
 
-void transpose(const double *B, double *BT, int k, int n) {
-  dim3 blockDim(BLOCK_DIM, BLOCK_DIM);
-  dim3 gridDim((k + blockDim.x - 1) / blockDim.x,
-               (n + blockDim.y - 1) / blockDim.y);
-
-  transpose_kernel<<<gridDim, blockDim>>>(B, BT, k, n);
+void transpose(const float *B, float *BT, int k, int n) {
+  dim3 block(BLOCK_DIM, BLOCK_DIM);
+  dim3 grid((k + BLOCK_DIM - 1) / BLOCK_DIM, (n + BLOCK_DIM - 1) / BLOCK_DIM);
+  transpose_kernel<<<grid, block>>>(B, BT, k, n);
   cudaDeviceSynchronize();
 }
 
-void matmul_naive(const double *A, const double *B, double *C, int n, int k) {
-  double *d_BT;
-  cudaMalloc(&d_BT, n * k * sizeof(double));
-
+void matmul_naive(const float *A, const float *B, float *C, int n, int k) {
+  float *d_BT;
+  cudaMalloc(&d_BT, n * k * sizeof(float));
   transpose(B, d_BT, k, n);
 
-  dim3 blockDim(BLOCK_DIM, BLOCK_DIM);
-  dim3 gridDim((n + blockDim.x - 1) / blockDim.x,
-               (n + blockDim.y - 1) / blockDim.y);
-
-  matmul_kernel<<<gridDim, blockDim>>>(A, d_BT, C, n, k);
+  dim3 block(BLOCK_DIM, BLOCK_DIM);
+  dim3 grid((n + BLOCK_DIM - 1) / BLOCK_DIM, (n + BLOCK_DIM - 1) / BLOCK_DIM);
+  matmul_kernel_naive<<<grid, block>>>(A, d_BT, C, n, k);
   cudaDeviceSynchronize();
-
   cudaFree(d_BT);
 }
 
-void matmul_shared(const double *A, const double *B, double *C, int n, int k) {
-  double *d_BT;
-  cudaMalloc(&d_BT, n * k * sizeof(double));
-
+void matmul_shared(const float *A, const float *B, float *C, int n, int k) {
+  float *d_BT;
+  cudaMalloc(&d_BT, n * k * sizeof(float));
   transpose(B, d_BT, k, n);
 
-  dim3 blockDim(TILE_WIDTH, TILE_WIDTH);
-  dim3 gridDim((n + blockDim.x - 1) / blockDim.x,
-               (n + blockDim.y - 1) / blockDim.y);
-
-  matmul_kernel_shared<<<gridDim, blockDim>>>(A, d_BT, C, n, k);
+  dim3 block(TILE_WIDTH, TILE_WIDTH);
+  dim3 grid((n + TILE_WIDTH - 1) / TILE_WIDTH,
+            (n + TILE_WIDTH - 1) / TILE_WIDTH);
+  matmul_kernel_shared<<<grid, block>>>(A, d_BT, C, n, k);
   cudaDeviceSynchronize();
-
   cudaFree(d_BT);
 }
 
-void matmul_shared_padded(const double *A, const double *B, double *C, int n,
+void matmul_shared_padded(const float *A, const float *B, float *C, int n,
                           int k) {
-  double *d_BT;
-  cudaMalloc(&d_BT, n * k * sizeof(double));
-
+  float *d_BT;
+  cudaMalloc(&d_BT, n * k * sizeof(float));
   transpose(B, d_BT, k, n);
 
-  dim3 blockDim(TILE_WIDTH, TILE_WIDTH);
-  dim3 gridDim((n + blockDim.x - 1) / blockDim.x,
-               (n + blockDim.y - 1) / blockDim.y);
-
-  matmul_kernel_shared_padded<<<gridDim, blockDim>>>(A, d_BT, C, n, k);
+  dim3 block(TILE_WIDTH, TILE_WIDTH);
+  dim3 grid((n + TILE_WIDTH - 1) / TILE_WIDTH,
+            (n + TILE_WIDTH - 1) / TILE_WIDTH);
+  matmul_kernel_shared_padded<<<grid, block>>>(A, d_BT, C, n, k);
   cudaDeviceSynchronize();
-
   cudaFree(d_BT);
 }
 
@@ -180,11 +155,11 @@ void matmul_shared_padded(const double *A, const double *B, double *C, int n,
  * sizes n, k
  * @return void
  */
-void matmul_ref(const double *A, const double *B, double *C_ref, int n, int k) {
+void matmul_ref(const float *A, const float *B, float *C_ref, int n, int k) {
 /* Initialize C_ref to zeros in parallel */
 #pragma omp parallel for
   for (int i = 0; i < n * n; i++)
-    C_ref[i] = 0.0;
+    C_ref[i] = 0.0f;
 
 /* Blocked/tiled implementation with OpenMP parallelism */
 #pragma omp parallel for collapse(3)
@@ -193,12 +168,10 @@ void matmul_ref(const double *A, const double *B, double *C_ref, int n, int k) {
       for (int kk = 0; kk < k; kk += BLOCK_DIM) {
         for (int i = ii; i < std::min(ii + BLOCK_DIM, n); i++) {
           for (int j = jj; j < std::min(jj + BLOCK_DIM, n); j++) {
-            double sum = 0.0;
-/* Use SIMD vectorization for the innermost loop */
+            float sum = 0.0f;
 #pragma omp simd reduction(+ : sum)
             for (int p = kk; p < std::min(kk + BLOCK_DIM, k); p++)
               sum += A[i * k + p] * B[p * n + j];
-
             C_ref[i * n + j] += sum;
           }
         }
