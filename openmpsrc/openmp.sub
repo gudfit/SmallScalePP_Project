@@ -3,8 +3,8 @@
 ## MPI submission script for PBS on CRESCENT
 ## -----------------------------------------
 #PBS -N openMPTest
-#PBS -l select=1:ncpus=8:mpiprocs=1:ngpus=1
-#PBS -q gpu_V100
+#PBS -l select=1:ncpus=8:mpiprocs=1
+#PBS -q half_hour
 #PBS -m abe 
 #PBS -M xxxxx@xxxxx.ac.uk
 ## DO NOT CHANGE the following lines
