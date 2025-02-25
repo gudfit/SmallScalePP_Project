@@ -9,19 +9,11 @@
 #define TILE_WIDTH_PADDED (TILE_WIDTH + 1)
 
 __global__ void transpose_kernel(const float *B, float *BT, int k, int n) {
-  __shared__ float tile[TILE_WIDTH][TILE_WIDTH + 1];
-  int x = blockIdx.x * TILE_WIDTH + threadIdx.x;
-  int y = blockIdx.y * TILE_WIDTH + threadIdx.y;
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-  if (x < k && y < n)
-    tile[threadIdx.y][threadIdx.x] = B[y * k + x];
-
-  __syncthreads();
-
-  x = blockIdx.y * TILE_WIDTH + threadIdx.x; // Transposed output indices
-  y = blockIdx.x * TILE_WIDTH + threadIdx.y;
-  if (x < n && y < k)
-    BT[x * k + y] = tile[threadIdx.x][threadIdx.y];
+  if (i < k && j < n)
+    BT[j * k + i] = B[i * n + j];
 }
 
 __global__ void matmul_kernel_naive(const float *A, const float *BT, float *C,
