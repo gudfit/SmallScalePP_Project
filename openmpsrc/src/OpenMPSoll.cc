@@ -41,9 +41,8 @@ void matmul(const double *A, const double *B, double *C, int n, int k) {
 
 /* Initialize C to zeros first */
 #pragma omp parallel for
-  for (int i = 0; i < n * n; i++) {
+  for (int i = 0; i < n * n; i++)
     C[i] = 0.0;
-  }
 
 /* Tiling technique for better cache performance */
 #pragma omp parallel for collapse(2) schedule(guided)
@@ -62,9 +61,8 @@ void matmul(const double *A, const double *B, double *C, int n, int k) {
 
 /* Use vector operations when possible */
 #pragma omp simd reduction(+ : sum)
-            for (int p = kk; p < kmax; p++) {
-              sum += A[i * k + p] * BT[j * k + p]; // Using transposed B
-            }
+            for (int p = kk; p < kmax; p++)
+              sum += A[i * k + p] * BT[j * k + p];
           }
 
           C[i * n + j] = sum;
