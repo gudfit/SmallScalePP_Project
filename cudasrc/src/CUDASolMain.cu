@@ -103,7 +103,7 @@ int main() {
       else
         std::cout << "Correctness test FAILED.\n";
 
-      /* Free GPU memory (still required) */
+      /* Free mem */
       cudaFree(d_A);
       cudaFree(d_B);
       cudaFree(d_C);
