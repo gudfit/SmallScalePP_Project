@@ -10,7 +10,7 @@ where $A$ is an $n \times k$ matrix, $B$ is a $k \times n$ matrix, and $C$ is an
 
 ## CUDA Implementations
 
-All CUDA kernels utilize double-precision floating-point numbers (`double`) and employ row-major matrix storage, following standard C/C++ conventions.
+All CUDA kernels utilize floating-point numbers (`floats`) _(you can use double if you care about precision i care about speed)_ and employ row-major matrix storage, following standard C/C++ conventions.
 
 ### 1. Naive CUDA Kernel
 
