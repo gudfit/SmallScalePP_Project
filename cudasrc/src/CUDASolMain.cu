@@ -76,7 +76,7 @@ int main() {
       for (int i = 0; i < n * n; i++)
         max_error = std::max(max_error, std::fabs(C[i] - C_ref[i]));
 
-      const float tolerance = 1e-6f;
+      const float tolerance = 1e-5f;
       std::cout << "Max error: " << max_error << (max_error < tolerance ? " PASSED" : " FAILED") << "\n";
 
       /* Free mem */

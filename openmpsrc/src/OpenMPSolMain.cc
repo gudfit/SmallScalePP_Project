@@ -22,9 +22,9 @@ int main() {
       std::cout << "Testing: n = " << n << ", k = " << k << "\n";
 
       /* Allocate memory with std::vector */
-      std::vector<double> A(n * k);
-      std::vector<double> B(k * n);
-      std::vector<double> C(n * n, 0.0);
+      std::vector<float> A(n * k);
+      std::vector<float> B(k * n);
+      std::vector<float> C(n * n, 0.0);
 
       /* Initialize matrices A and B with random values using OpenMP */
       std::random_device rd;
@@ -35,7 +35,7 @@ int main() {
 #pragma omp section
         {
           std::mt19937 gen(seed);
-          std::uniform_real_distribution<> dis(0.0, 1.0);
+          std::uniform_real_distribution<> dis(0.0f, 1.0f);
           for (int i = 0; i < n * k; i++)
             A[i] = dis(gen);
         }
@@ -43,7 +43,7 @@ int main() {
 #pragma omp section
         {
           std::mt19937 gen(seed + 1);
-          std::uniform_real_distribution<> dis(0.0, 1.0);
+          std::uniform_real_distribution<> dis(0.0f, 1.0f);
           for (int i = 0; i < k * n; i++)
             B[i] = dis(gen);
         }
@@ -67,7 +67,7 @@ int main() {
       std::cout << "Performance:          " << gflops << " GFLOPS\n";
 
       /* Compute the reference multiplication using a serial implementation*/
-      std::vector<double> C_ref(n * n, 0.0);
+      std::vector<float> C_ref(n * n, 0.0);
 
       auto ref_start = std::chrono::high_resolution_clock::now();
       matmul_ref(A.data(), B.data(), C_ref.data(), n, k);
@@ -75,14 +75,14 @@ int main() {
       std::chrono::duration<double> ref_time = ref_end - ref_start;
 
       /* Calculate error in parallel */
-      double max_error = 0.0;
+      double max_error = 0.0f;
 #pragma omp parallel
       {
-        double local_max = 0.0;
+        double local_max = 0.0f;
 
 #pragma omp for nowait
         for (int i = 0; i < n * n; i++) {
-          double diff = std::abs(C[i] - C_ref[i]);
+          double diff = std::fabs(C[i] - C_ref[i]);
           if (diff > local_max)
             local_max = diff;
         }
@@ -94,7 +94,7 @@ int main() {
         }
       }
 
-      const double tolerance = 1e-9;
+      const double tolerance = 1e-5f;
       std::cout << "Reference multiplication time: " << ref_time.count()
                 << " s\n";
       std::cout << "Maximum difference with reference: " << max_error << "\n";
