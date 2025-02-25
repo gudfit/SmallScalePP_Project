@@ -52,10 +52,8 @@ __global__ void matmul_kernel_shared(const float *A, const float *BT, float *C,
   __shared__ float tile_A[TILE_WIDTH][TILE_WIDTH];
   __shared__ float tile_BT[TILE_WIDTH][TILE_WIDTH];
 
-  int bx = blockIdx.x;
-  int by = blockIdx.y;
-  int tx = threadIdx.x;
-  int ty = threadIdx.y;
+  int bx = blockIdx.x, by = blockIdx.y;
+  int tx = threadIdx.x, ty = threadIdx.y;
 
   int row = by * TILE_WIDTH + ty;
   int col = bx * TILE_WIDTH + tx;
@@ -66,14 +64,15 @@ __global__ void matmul_kernel_shared(const float *A, const float *BT, float *C,
     int a_col = t * TILE_WIDTH + tx;
     tile_A[ty][tx] = (row < n && a_col < k) ? A[row * k + a_col] : 0.0f;
 
-    int bt_col = t * TILE_WIDTH + tx;
-    tile_BT[ty][tx] = (col < n && bt_col < k) ? BT[col * k + bt_col] : 0.0f;
+    int bt_row = col;
+    int bt_col = t * TILE_WIDTH + ty;
+    tile_BT[ty][tx] =
+        (bt_row < n && bt_col < k) ? BT[bt_row * k + bt_col] : 0.0f;
 
     __syncthreads();
 
-#pragma unroll
     for (int p = 0; p < TILE_WIDTH; ++p)
-      sum += tile_A[ty][p] * tile_BT[ty][p];
+      sum += tile_A[ty][p] * tile_BT[p][tx];
 
     __syncthreads();
   }
