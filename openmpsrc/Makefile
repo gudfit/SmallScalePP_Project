@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -fopenmp -Wall -O4
+CXXFLAGS = -fopenmp -Wall -O3 -mavx -mavx2 -mfma -march=native
 SRC_DIR = src
 BUILD_DIR = matmul_perf
 
@@ -26,4 +26,3 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 .PHONY: all clean
-
