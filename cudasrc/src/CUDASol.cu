@@ -38,9 +38,9 @@ __global__ void matmul_kernel_naive(const float *A, const float *BT, float *C,
                                     int n, int k) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
+  float sum = 0.0f;
 
   if (i < n && j < n) {
-    float sum = 0.0f;
     for (int p = 0; p < k; p++)
       sum += A[i * k + p] * BT[j * k + p];
     C[i * n + j] = sum;
@@ -52,27 +52,27 @@ __global__ void matmul_kernel_shared(const float *A, const float *BT, float *C,
   __shared__ float tile_A[TILE_WIDTH][TILE_WIDTH];
   __shared__ float tile_BT[TILE_WIDTH][TILE_WIDTH];
 
-  int bx = blockIdx.x, by = blockIdx.y;
-  int tx = threadIdx.x, ty = threadIdx.y;
-
-  int row = by * TILE_WIDTH + ty;
-  int col = bx * TILE_WIDTH + tx;
-
+  int row = blockIdx.y * TILE_WIDTH + threadIdx.y;
+  int col = blockIdx.x * TILE_WIDTH + threadIdx.x;
   float sum = 0.0f;
 
   for (int t = 0; t < (k + TILE_WIDTH - 1) / TILE_WIDTH; ++t) {
-    int a_col = t * TILE_WIDTH + tx;
-    tile_A[ty][tx] = (row < n && a_col < k) ? A[row * k + a_col] : 0.0f;
+    int a_col = t * TILE_WIDTH + threadIdx.x;
+    if (row < n && a_col < k)
+      tile_A[threadIdx.y][threadIdx.x] = A[row * k + a_col];
+    else
+      tile_A[threadIdx.y][threadIdx.x] = 0.0f;
 
-    int bt_row = col;
-    int bt_col = t * TILE_WIDTH + ty;
-    tile_BT[ty][tx] =
-        (bt_row < n && bt_col < k) ? BT[bt_row * k + bt_col] : 0.0f;
+    int bt_col = t * TILE_WIDTH + threadIdx.y;
+    if (col < n && bt_col < k)
+      tile_BT[threadIdx.y][threadIdx.x] = BT[col * k + bt_col];
+    else
+      tile_BT[threadIdx.y][threadIdx.x] = 0.0f;
 
     __syncthreads();
 
     for (int p = 0; p < TILE_WIDTH; ++p)
-      sum += tile_A[ty][p] * tile_BT[p][tx];
+      sum += tile_A[threadIdx.y][p] * tile_BT[p][threadIdx.x];
 
     __syncthreads();
   }
