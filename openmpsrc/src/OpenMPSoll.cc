@@ -55,7 +55,6 @@ void matmul(const double *A, const double *B, double *C, int n, int k) {
       for (int i = ii; i < imax; i++) {
         for (int j = jj; j < jmax; j++) {
           double sum = 0.0;
-
           for (int kk = 0; kk < k; kk += BLOCK_SIZE / 2) {
             const int kmax = std::min(kk + BLOCK_SIZE / 2, k);
 
@@ -64,7 +63,6 @@ void matmul(const double *A, const double *B, double *C, int n, int k) {
             for (int p = kk; p < kmax; p++)
               sum += A[i * k + p] * BT[j * k + p];
           }
-
           C[i * n + j] = sum;
         }
       }
