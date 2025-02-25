@@ -152,6 +152,7 @@ void matmul_ref(const double *A, const double *B, double *C_ref, int n, int k) {
     C_ref[i] = 0.0;
 
   /* Blocked/tiled implementation for better cache utilization */
+#pragma omp parallel for collapse(3)
   for (int ii = 0; ii < n; ii += BLOCK_SIZE) {
     for (int jj = 0; jj < n; jj += BLOCK_SIZE) {
       const int imax = std::min(ii + BLOCK_SIZE, n);
