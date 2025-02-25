@@ -29,7 +29,7 @@ __global__ void transpose_kernel(const float *B, float *BT, int k, int n) {
 
   /* Write the transposed data back to global memory */
   if (x < n && y < k) {
-    unsigned int index_out = y * n + x;
+    unsigned int index_out = x * k + y;
     BT[index_out] = block[threadIdx.x][threadIdx.y];
   }
 }
