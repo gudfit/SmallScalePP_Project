@@ -112,8 +112,7 @@ void matmul(const double *A, const double *B, double *C, int n, int k) {
             for (; p <= k - 4; p += 4) {
               __m256d a_vec = _mm256_loadu_pd(&A[i * k + p]);
               __m256d bt_vec = _mm256_loadu_pd(&BT[j * k + p]);
-              /* Multiply and add */
-              sum_vec = _mm256_add_pd(sum_vec, _mm256_mul_pd(a_vec, bt_vec));
+              sum_vec = _mm256_fmadd_pd(a_vec, bt_vec, sum_vec);
             }
 
             /* Horizontal sum of the 4 doubles in sum_vec */
@@ -165,7 +164,6 @@ void matmul_ref(const double *A, const double *B, double *C_ref, int n, int k) {
             double sum = 0.0;
             for (int p = kk; p < kmax; p++)
               sum += A[i * k + p] * B[p * n + j];
-
             C_ref[i * n + j] += sum;
           }
         }
