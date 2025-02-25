@@ -98,7 +98,7 @@ void matmul(const float *A, const float *B, float *C, int n, int k) {
     C[i] = 0.0f;
 
 /* Tiling technique for better cache performance */
-#pragma omp parallel for collapse(2) schedule(static)
+#pragma omp parallel for collapse(2) schedule(guided)
   for (int ii = 0; ii < n; ii += BLOCK_SIZE) {
     for (int jj = 0; jj < n; jj += BLOCK_SIZE) {
       /* Use local block boundaries to avoid repeated min operations */
