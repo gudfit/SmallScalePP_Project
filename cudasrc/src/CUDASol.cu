@@ -174,7 +174,7 @@ void matmul_ref(const double *A, const double *B, double *C_ref, int n, int k) {
     C_ref[i] = 0.0;
 
 /* Blocked/tiled implementation with OpenMP parallelism */
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(3)
   for (int ii = 0; ii < n; ii += BLOCK_DIM) {
     for (int jj = 0; jj < n; jj += BLOCK_DIM) {
       for (int kk = 0; kk < k; kk += BLOCK_DIM) {
