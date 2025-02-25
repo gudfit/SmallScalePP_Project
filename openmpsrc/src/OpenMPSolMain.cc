@@ -18,12 +18,9 @@ int main() {
       std::cout << "Testing: n = " << n << ", k = " << k << "\n";
 
       /* Allocating mem A: n x k, B: k x n, C: n x n */
-      double *A = new double[n * k];
-      if (!A) { std::cerr << "Allocation failed for A\n"; return 1; }
-      double *B = new double[k * n];
-      if (!B) { std::cerr << "Allocation failed for B\n"; return 1; }
-      double *C = new double[n * n];
-      if (!C) { std::cerr << "Allocation failed for C\n"; return 1; }
+      std::vector<double> A(n * k);
+      std::vector<double> B(k * n);
+      std::vector<double> C(n * n);
 
       /* Initialize matrices A and B with random values */
       std::random_device rd;
@@ -37,10 +34,11 @@ int main() {
 
       auto total_start = std::chrono::high_resolution_clock::now();
       auto t_start = std::chrono::high_resolution_clock::now();
-      /* Compute C = A * B using the transposed B */
-      matmul(A, B, C, n, k);
-      auto t_end = std::chrono::high_resolution_clock::now();
 
+      /* Compute C = A * B using the transposed B */
+      matmul(A.data(), B.data(), C.data(), n, k);
+
+      auto t_end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> mult_time = t_end - t_start;
       auto total_end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> total_time = total_end - total_start;
@@ -52,12 +50,11 @@ int main() {
       std::cout << "Total time:           " << total_time.count() << " s\n";
       std::cout << "Performance:          " << gflops << " GFLOPS\n";
 
-      // Correctness
       /* Compute the reference multiplication using a serial implementation*/
-      double *C_ref = new double[n * n];
-      if (!C_ref) { std::cerr << "Allocation failed for C_ref\n"; return 1; }
+      std::vector<double> C_ref(n * n);
+
       auto ref_start = std::chrono::high_resolution_clock::now();
-      matmul_ref(A, B, C_ref, n, k);
+      matmul_ref(A.data(), B.data(), C_ref.data(), n, k);
       auto ref_end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> ref_time = ref_end - ref_start;
 
@@ -67,21 +64,16 @@ int main() {
         if (diff > max_error)
           max_error = diff;
       }
+
       const double tolerance = 1e-9;
       std::cout << "Reference multiplication time: " << ref_time.count()
                 << " s\n";
       std::cout << "Maximum difference with reference: " << max_error << "\n";
+
       if (max_error < tolerance)
         std::cout << "Correctness test PASSED.\n";
       else
         std::cout << "Correctness test FAILED.\n";
-
-      /* Free Mem*/
-
-      delete[] A;
-      delete[] B;
-      delete[] C;
-      delete[] C_ref;
     }
   }
   return 0;

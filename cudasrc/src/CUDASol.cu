@@ -138,4 +138,3 @@ void matmul_ref(const double *A, const double *B, double *C_ref, int n, int k) {
     }
   }
 }
- 
