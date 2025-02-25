@@ -1,22 +1,12 @@
 #include "CUDASol.cuh"
-#include <algorithm>
 #include <cuda_runtime.h>
-#include <omp.h>
 
 #define TILE_WIDTH 32
 #define BLOCK_DIM 32
 
 #define TILE_WIDTH_PADDED (TILE_WIDTH + 1)
 
-__global__ void transpose_kernel(const double *B, double *BT, int k, int n) {
-  int i = blockIdx.x * blockDim.x + threadIdx.x;
-  int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-  if (i < k && j < n)
-    BT[j * k + i] = B[i * n + j];
-}
-
-__global__ void matmul_kernel(const double *A, const double *BT, double *C,
+__global__ void matmul_kernel(const double *A, const double *B, double *C,
                               int n, int k) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -24,16 +14,16 @@ __global__ void matmul_kernel(const double *A, const double *BT, double *C,
   if (i < n && j < n) {
     double sum = 0.0;
     for (int p = 0; p < k; p++)
-      sum += A[i * k + p] * BT[j * k + p];
+      sum += A[i * k + p] * B[p * n + j];
 
     C[i * n + j] = sum;
   }
 }
 
-__global__ void matmul_kernel_shared(const double *A, const double *BT,
+__global__ void matmul_kernel_shared(const double *A, const double *B,
                                      double *C, int n, int k) {
   __shared__ double tile_A[TILE_WIDTH][TILE_WIDTH];
-  __shared__ double tile_BT[TILE_WIDTH][TILE_WIDTH];
+  __shared__ double tile_B[TILE_WIDTH][TILE_WIDTH];
 
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -41,23 +31,23 @@ __global__ void matmul_kernel_shared(const double *A, const double *BT,
   double sum = 0.0;
 
   for (int t = 0; t < (k + TILE_WIDTH - 1) / TILE_WIDTH; ++t) {
-    /* Load tiles into shared memory */
+
     int col_A = t * TILE_WIDTH + threadIdx.y;
     if (i < n && col_A < k)
       tile_A[threadIdx.x][threadIdx.y] = A[i * k + col_A];
     else
       tile_A[threadIdx.x][threadIdx.y] = 0.0;
 
-    int col_BT = t * TILE_WIDTH + threadIdx.y;
-    if (j < n && col_BT < k)
-      tile_BT[threadIdx.x][threadIdx.y] = BT[j * k + col_BT];
+    int row_B = t * TILE_WIDTH + threadIdx.x;
+    if (j < n && row_B < k)
+      tile_B[threadIdx.x][threadIdx.y] = B[row_B * n + j];
     else
-      tile_BT[threadIdx.x][threadIdx.y] = 0.0;
+      tile_B[threadIdx.x][threadIdx.y] = 0.0;
 
     __syncthreads();
 #pragma unroll
     for (int p = 0; p < TILE_WIDTH; ++p)
-      sum += tile_A[threadIdx.x][p] * tile_BT[threadIdx.y][p];
+      sum += tile_A[threadIdx.x][p] * tile_B[p][threadIdx.y];
     __syncthreads();
   }
 
@@ -65,10 +55,10 @@ __global__ void matmul_kernel_shared(const double *A, const double *BT,
     C[i * n + j] = sum;
 }
 
-__global__ void matmul_kernel_shared_padded(const double *A, const double *BT,
+__global__ void matmul_kernel_shared_padded(const double *A, const double *B,
                                             double *C, int n, int k) {
   __shared__ double tile_A[TILE_WIDTH][TILE_WIDTH_PADDED];
-  __shared__ double tile_BT[TILE_WIDTH][TILE_WIDTH_PADDED];
+  __shared__ double tile_B[TILE_WIDTH_PADDED][TILE_WIDTH];
 
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -76,85 +66,54 @@ __global__ void matmul_kernel_shared_padded(const double *A, const double *BT,
   double sum = 0.0;
 
   for (int t = 0; t < (k + TILE_WIDTH - 1) / TILE_WIDTH; ++t) {
+
     int col_A = t * TILE_WIDTH + threadIdx.y;
     if (i < n && col_A < k)
       tile_A[threadIdx.x][threadIdx.y] = A[i * k + col_A];
     else
       tile_A[threadIdx.x][threadIdx.y] = 0.0;
 
-    int col_BT = t * TILE_WIDTH + threadIdx.y;
-    if (j < n && col_BT < k)
-      tile_BT[threadIdx.x][threadIdx.y] = BT[j * k + col_BT];
+    int row_B = t * TILE_WIDTH + threadIdx.x;
+    if (j < n && row_B < k)
+      tile_B[threadIdx.x][threadIdx.y] = B[row_B * n + j];
     else
-      tile_BT[threadIdx.x][threadIdx.y] = 0.0;
+      tile_B[threadIdx.x][threadIdx.y] = 0.0;
 
     __syncthreads();
 #pragma unroll
     for (int p = 0; p < TILE_WIDTH; ++p)
-      sum += tile_A[threadIdx.x][p] * tile_BT[threadIdx.y][p];
+      sum += tile_A[threadIdx.x][p] * tile_B[p][threadIdx.y];
     __syncthreads();
   }
 
   if (i < n && j < n)
     C[i * n + j] = sum;
-}
-
-void transpose(const double *B, double *BT, int k, int n) {
-  dim3 blockDim(BLOCK_DIM, BLOCK_DIM);
-  dim3 gridDim((k + blockDim.x - 1) / blockDim.x,
-               (n + blockDim.y - 1) / blockDim.y);
-
-  transpose_kernel<<<gridDim, blockDim>>>(B, BT, k, n);
-  cudaDeviceSynchronize();
 }
 
 void matmul_naive(const double *A, const double *B, double *C, int n, int k) {
-  double *d_BT;
-  cudaMalloc(&d_BT, n * k * sizeof(double));
-
-  transpose(B, d_BT, k, n);
-
   dim3 blockDim(BLOCK_DIM, BLOCK_DIM);
   dim3 gridDim((n + blockDim.x - 1) / blockDim.x,
                (n + blockDim.y - 1) / blockDim.y);
 
-  matmul_kernel<<<gridDim, blockDim>>>(A, d_BT, C, n, k);
+  matmul_kernel<<<gridDim, blockDim>>>(A, B, C, n, k);
   cudaDeviceSynchronize();
-
-  cudaFree(d_BT);
 }
 
 void matmul_shared(const double *A, const double *B, double *C, int n, int k) {
-  double *d_BT;
-  cudaMalloc(&d_BT, n * k * sizeof(double));
-
-  transpose(B, d_BT, k, n);
-
   dim3 blockDim(TILE_WIDTH, TILE_WIDTH);
   dim3 gridDim((n + blockDim.x - 1) / blockDim.x,
                (n + blockDim.y - 1) / blockDim.y);
-
-  matmul_kernel_shared<<<gridDim, blockDim>>>(A, d_BT, C, n, k);
+  matmul_kernel_shared<<<gridDim, blockDim>>>(A, B, C, n, k);
   cudaDeviceSynchronize();
-
-  cudaFree(d_BT);
 }
 
 void matmul_shared_padded(const double *A, const double *B, double *C, int n,
                           int k) {
-  double *d_BT;
-  cudaMalloc(&d_BT, n * k * sizeof(double));
-
-  transpose(B, d_BT, k, n);
-
   dim3 blockDim(TILE_WIDTH, TILE_WIDTH);
   dim3 gridDim((n + blockDim.x - 1) / blockDim.x,
                (n + blockDim.y - 1) / blockDim.y);
-
-  matmul_kernel_shared_padded<<<gridDim, blockDim>>>(A, d_BT, C, n, k);
+  matmul_kernel_shared_padded<<<gridDim, blockDim>>>(A, B, C, n, k);
   cudaDeviceSynchronize();
-
-  cudaFree(d_BT);
 }
 
 /*
