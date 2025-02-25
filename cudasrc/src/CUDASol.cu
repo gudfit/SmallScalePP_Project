@@ -173,31 +173,12 @@ void matmul_shared_padded(const float *A, const float *B, float *C, int n,
  * @return void
  */
 void matmul_ref(const float *A, const float *B, float *C_ref, int n, int k) {
-  /* Initialize C_ref to zeros */
-#pragma omp parallel for
-  for (int i = 0; i < n * n; i++)
-    C_ref[i] = 0.0f;
-
-  /* Blocked/tiled implementation for better cache utilization */
-#pragma omp parallel for collapse(2)
-  for (int ii = 0; ii < n; ii += BLOCK_SIZE) {
-    for (int jj = 0; jj < n; jj += BLOCK_SIZE) {
-      const int imax = std::min(ii + BLOCK_SIZE, n);
-      const int jmax = std::min(jj + BLOCK_SIZE, n);
-
-      for (int kk = 0; kk < k; kk += BLOCK_SIZE) {
-        const int kmax = std::min(kk + BLOCK_SIZE, k);
-
-        for (int i = ii; i < imax; i++) {
-          for (int j = jj; j < jmax; j++) {
-            float sum = 0.0f;
-#pragma omp simd reduction(+ : sum)
-            for (int p = kk; p < kmax; p++)
-              sum += A[i * k + p] * B[p * n + j];
-            C_ref[i * n + j] += sum;
-          }
-        }
-      }
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      float sum = 0.0;
+      for (int p = 0; p < k; p++)
+        sum += A[i * k + p] * B[p * n + j];
+      C_ref[i * n + j] = sum;
     }
   }
 }
