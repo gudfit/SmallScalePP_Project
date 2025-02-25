@@ -9,8 +9,7 @@
 #define TILE_WIDTH_PADDED (TILE_WIDTH + 1)
 
 __global__ void transpose_kernel(const float *B, float *BT, int k, int n) {
-  __shared__ float tile[TILE_WIDTH]
-                       [TILE_WIDTH + 1]; // +1 to avoid bank conflicts
+  __shared__ float tile[TILE_WIDTH][TILE_WIDTH + 1];
   int x = blockIdx.x * TILE_WIDTH + threadIdx.x;
   int y = blockIdx.y * TILE_WIDTH + threadIdx.y;
 
