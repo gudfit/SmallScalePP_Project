@@ -148,6 +148,7 @@ void matmul(const double *A, const double *B, double *C, int n, int k) {
  */
 void matmul_ref(const double *A, const double *B, double *C_ref, int n, int k) {
   /* Initialize C_ref to zeros */
+#pragma omp parallel for
   for (int i = 0; i < n * n; i++)
     C_ref[i] = 0.0;
 
@@ -164,6 +165,7 @@ void matmul_ref(const double *A, const double *B, double *C_ref, int n, int k) {
         for (int i = ii; i < imax; i++) {
           for (int j = jj; j < jmax; j++) {
             double sum = 0.0;
+#pragma omp simd reduction(+ : sum)
             for (int p = kk; p < kmax; p++)
               sum += A[i * k + p] * B[p * n + j];
 
