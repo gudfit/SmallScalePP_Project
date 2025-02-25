@@ -1,10 +1,10 @@
 CXX = g++
-CXXFLAGS = -fopenmp -Wall -O4
+CXXFLAGS = -fopenmp -Wall -O4 -mavx -mavx2 -mfma -march=native
 SRC_DIR = src
 BUILD_DIR = matmul_perf
 
 # Source files
-SOURCES = $(SRC_DIR)/OpenMPSoll.cc $(SRC_DIR)/OpenMPSolMain.cc
+SOURCES = $(SRC_DIR)/OpenMPSol.cc $(SRC_DIR)/OpenMPSolMain.cc
 OBJECTS = $(SOURCES:.cc=.o)
 TARGET = $(BUILD_DIR)/matmul
 
@@ -23,6 +23,6 @@ $(TARGET): $(OBJECTS)
 # Clean rule
 clean:
 	rm -f $(OBJECTS) $(TARGET)
+	rm -rf $(BUILD_DIR)
 
 .PHONY: all clean
-

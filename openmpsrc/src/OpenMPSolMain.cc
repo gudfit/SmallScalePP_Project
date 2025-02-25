@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <omp.h>
 #include <random>
 #include <vector>
 
@@ -11,77 +12,97 @@ int main() {
   std::vector<int> ns = {512, 1024, 2048, 4096};
   std::vector<int> ks = {32, 48, 64, 96, 128};
 
+  int max_threads = omp_get_max_threads();
+  omp_set_num_threads(max_threads);
+
   /* Each combination of n and k*/
   for (int n : ns) {
     for (int k : ks) {
       std::cout << "-------------------------------------------\n";
       std::cout << "Testing: n = " << n << ", k = " << k << "\n";
 
-      /* Allocating mem A: n x k, B: k x n, C: n x n */
-      double *A = new double[n * k];
-      if (!A) { std::cerr << "Allocation failed for A\n"; return 1; }
-      double *B = new double[k * n];
-      if (!B) { std::cerr << "Allocation failed for B\n"; return 1; }
-      double *C = new double[n * n];
-      if (!C) { std::cerr << "Allocation failed for C\n"; return 1; }
+      /* Allocate memory with std::vector */
+      std::vector<float> A(n * k);
+      std::vector<float> B(k * n);
+      std::vector<float> C(n * n, 0.0);
 
-      /* Initialize matrices A and B with random values */
+      /* Initialize matrices A and B with random values using OpenMP */
       std::random_device rd;
-      std::mt19937 gen(rd());
-      std::uniform_real_distribution<> dis(0.0, 1.0);
+      unsigned int seed = rd();
 
-      for (int i = 0; i < n * k; i++)
-        A[i] = dis(gen);
-      for (int i = 0; i < k * n; i++)
-        B[i] = dis(gen);
+#pragma omp parallel sections
+      {
+#pragma omp section
+        {
+          std::mt19937 gen(seed);
+          std::uniform_real_distribution<> dis(0.0f, 1.0f);
+          for (int i = 0; i < n * k; i++)
+            A[i] = dis(gen);
+        }
+
+#pragma omp section
+        {
+          std::mt19937 gen(seed + 1);
+          std::uniform_real_distribution<> dis(0.0f, 1.0f);
+          for (int i = 0; i < k * n; i++)
+            B[i] = dis(gen);
+        }
+      }
 
       auto total_start = std::chrono::high_resolution_clock::now();
       auto t_start = std::chrono::high_resolution_clock::now();
-      /* Compute C = A * B using the transposed B */
-      matmul(A, B, C, n, k);
-      auto t_end = std::chrono::high_resolution_clock::now();
 
+      /* Compute C = A * B using the optimized OpenMP implementation */
+      matmul(A.data(), B.data(), C.data(), n, k);
+
+      auto t_end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> mult_time = t_end - t_start;
       auto total_end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> total_time = total_end - total_start;
 
       double flops = 2.0 * k * n * n;
-      double gflops = flops / (total_time.count() * 1e9);
-
+      double gflops = flops / (mult_time.count() * 1e9);
       std::cout << "Multiplication time:  " << mult_time.count() << " s\n";
       std::cout << "Total time:           " << total_time.count() << " s\n";
       std::cout << "Performance:          " << gflops << " GFLOPS\n";
 
-      // Correctness
       /* Compute the reference multiplication using a serial implementation*/
-      double *C_ref = new double[n * n];
-      if (!C_ref) { std::cerr << "Allocation failed for C_ref\n"; return 1; }
+      std::vector<float> C_ref(n * n, 0.0);
+
       auto ref_start = std::chrono::high_resolution_clock::now();
-      matmul_ref(A, B, C_ref, n, k);
+      matmul_ref(A.data(), B.data(), C_ref.data(), n, k);
       auto ref_end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> ref_time = ref_end - ref_start;
 
-      double max_error = 0.0;
-      for (int i = 0; i < n * n; i++) {
-        double diff = std::abs(C[i] - C_ref[i]);
-        if (diff > max_error)
-          max_error = diff;
+      /* Calculate error in parallel */
+      double max_error = 0.0f;
+#pragma omp parallel
+      {
+        double local_max = 0.0f;
+
+#pragma omp for nowait
+        for (int i = 0; i < n * n; i++) {
+          double diff = std::fabs(C[i] - C_ref[i]);
+          if (diff > local_max)
+            local_max = diff;
+        }
+
+#pragma omp critical
+        {
+          if (local_max > max_error)
+            max_error = local_max;
+        }
       }
-      const double tolerance = 1e-9;
+
+      const double tolerance = 1e-5f;
       std::cout << "Reference multiplication time: " << ref_time.count()
                 << " s\n";
       std::cout << "Maximum difference with reference: " << max_error << "\n";
+
       if (max_error < tolerance)
         std::cout << "Correctness test PASSED.\n";
       else
         std::cout << "Correctness test FAILED.\n";
-
-      /* Free Mem*/
-
-      delete[] A;
-      delete[] B;
-      delete[] C;
-      delete[] C_ref;
     }
   }
   return 0;
