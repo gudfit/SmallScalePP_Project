@@ -23,6 +23,7 @@ $(TARGET): $(OBJECTS)
 # Clean rule
 clean:
 	rm -f $(OBJECTS) $(TARGET)
+	rm -rf $(BUILD_DIR)
 
 .PHONY: all clean
 
