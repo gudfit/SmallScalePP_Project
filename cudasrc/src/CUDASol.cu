@@ -4,6 +4,7 @@
 #include <omp.h>
 
 #define TILE_WIDTH 32
+#define BLOCK_SIZE 32
 #define BLOCK_DIM 32
 
 #define TILE_WIDTH_PADDED (TILE_WIDTH + 1)
@@ -172,21 +173,26 @@ void matmul_shared_padded(const float *A, const float *B, float *C, int n,
  * @return void
  */
 void matmul_ref(const float *A, const float *B, float *C_ref, int n, int k) {
-/* Initialize C_ref to zeros in parallel */
+  /* Initialize C_ref to zeros */
 #pragma omp parallel for
   for (int i = 0; i < n * n; i++)
     C_ref[i] = 0.0f;
 
-/* Blocked/tiled implementation with OpenMP parallelism */
-#pragma omp parallel for collapse(3)
-  for (int ii = 0; ii < n; ii += BLOCK_DIM) {
-    for (int jj = 0; jj < n; jj += BLOCK_DIM) {
-      for (int kk = 0; kk < k; kk += BLOCK_DIM) {
-        for (int i = ii; i < std::min(ii + BLOCK_DIM, n); i++) {
-          for (int j = jj; j < std::min(jj + BLOCK_DIM, n); j++) {
+  /* Blocked/tiled implementation for better cache utilization */
+#pragma omp parallel for collapse(2)
+  for (int ii = 0; ii < n; ii += BLOCK_SIZE) {
+    for (int jj = 0; jj < n; jj += BLOCK_SIZE) {
+      const int imax = std::min(ii + BLOCK_SIZE, n);
+      const int jmax = std::min(jj + BLOCK_SIZE, n);
+
+      for (int kk = 0; kk < k; kk += BLOCK_SIZE) {
+        const int kmax = std::min(kk + BLOCK_SIZE, k);
+
+        for (int i = ii; i < imax; i++) {
+          for (int j = jj; j < jmax; j++) {
             float sum = 0.0f;
 #pragma omp simd reduction(+ : sum)
-            for (int p = kk; p < std::min(kk + BLOCK_DIM, k); p++)
+            for (int p = kk; p < kmax; p++)
               sum += A[i * k + p] * B[p * n + j];
             C_ref[i * n + j] += sum;
           }
