@@ -38,6 +38,12 @@ This repository implements matrix multiplication using CUDA with three different
    make -j 8
    ```
 
+   For Debug mode use:
+
+   ```
+   cmake -DCMAKE_BUILD_TYPE=Debug ..
+   ```
+
 2. **Prepare and Submit Your Job:**
    ```bash
    cp ../cudatest.sub .
