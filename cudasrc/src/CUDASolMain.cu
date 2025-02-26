@@ -106,10 +106,24 @@ int main() {
                 << (max_error < tolerance ? " PASSED" : " FAILED") << "\n";
 
       /* delete objects and mem */
+      
       delete[] A;
       delete[] B;
       delete[] C;
+
+      /* Unified
+      cudaFree(A);
+      cudaFree(B);
+      cudaFree(C);
+      */
+
+      /* Pinned Memory
+      cudaFreeHost(A);
+      cudaFreeHost(B);
+      */
+
       delete[] C_ref;
+
       cudaFree(d_A);
       cudaFree(d_B);
       cudaFree(d_C);
