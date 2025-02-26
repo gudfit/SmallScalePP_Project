@@ -8,9 +8,12 @@ $$
 
 where $A$ is an $n \times k$ matrix, $B$ is a $k \times n$ matrix, and $C$ is an $n \times n$ matrix, with $k < n$. 
 
+![ezgif-66599899878f5](https://github.com/user-attachments/assets/7fc2f895-b4c9-4be4-835e-0fa9a80a4f18)
+
+
 ## CUDA Implementations
 
-All CUDA kernels utilize floating-point numbers (`floats`) _(you can use double if you care about precision i care about speed)_ and employ row-major matrix storage, following standard C/C++ conventions.
+All CUDA kernels utilize floating-point numbers (`floats`) _(you can use double if you care about precision, i personally care about speed)_ and employ row-major matrix storage, following standard C/C++ conventions.
 
 ### 1. Naive CUDA Kernel
 
