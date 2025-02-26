@@ -84,6 +84,11 @@ sum += tile_A[threadIdx.x][p] * tile_B[p][threadIdx.y];
 
 Without padding, threads accessing elements within the same bank may cause serialized accesses within a warp, thereby degrading performance.
 
+## Results
+
+![image](https://github.com/user-attachments/assets/b74871e9-9a73-4f29-a5eb-d5961fe6a960)
+
+
 ## Conclusion
 
 Cool project, thanks @ _redacted_. An OpenMP implementation is also provided for comparative analysis in a parallel computing environment.
