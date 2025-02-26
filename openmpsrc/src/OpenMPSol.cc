@@ -6,7 +6,8 @@
 
 /* Define block size for better cache utilization */
 #define BLOCK_SIZE 64
-#define ALIGN_SIZE 32
+#define ALIGN_SIZE 64
+#define CACHELINE_PADDING (ALIGN_SIZE / sizeof(float))
 
 /* Class for aligned allocation */
 template <class T, size_t N = 32> class aligned_allocator {
@@ -60,7 +61,7 @@ public:
  * sizes n,k
  * @return void
  */
-void transpose(const float *B, float *BT, int k, int n) {
+void transpose_old(const float *B, float *BT, int k, int n) {
 #pragma omp parallel for collapse(2)
   for (int i = 0; i < k; i += ALIGN_SIZE) {
     for (int j = 0; j < n; j += ALIGN_SIZE) {
@@ -69,6 +70,26 @@ void transpose(const float *B, float *BT, int k, int n) {
       for (int ii = i; ii < iend; ++ii)
         for (int jj = j; jj < jend; ++jj)
           BT[jj * k + ii] = B[ii * n + jj];
+    }
+  }
+}
+void transpose(const float *B, float *BT, int k, int n) {
+  if (k <= 0 || n <= 0) {
+    return;
+  }
+
+#pragma omp parallel for collapse(2)
+  for (int i = 0; i < k; i += CACHELINE_PADDING) {
+    for (int j = 0; j < n; j += CACHELINE_PADDING) {
+      const int iend = std::min<int>(i + CACHELINE_PADDING, k);
+      const int jend = std::min<int>(j + CACHELINE_PADDING, n);
+      for (int ii = i; ii < iend; ++ii) {
+        const int row_offset = ii * n;
+        for (int jj = j; jj < jend; ++jj) {
+          const int col_offset = jj * k;
+          BT[col_offset + ii] = B[row_offset + jj];
+        }
+      }
     }
   }
 }
