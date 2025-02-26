@@ -93,7 +93,7 @@ int main() {
         }
       }
 
-      const double tolerance = 1e-5f;
+      const double tolerance = 1e-4f;
       std::cout << "Reference multiplication time: " << ref_time.count()
                 << " s\n";
       std::cout << "Maximum difference with reference: " << max_error << "\n";

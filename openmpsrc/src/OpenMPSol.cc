@@ -164,7 +164,7 @@ void matmul_ref(const float *A, const float *B, float *C_ref, int n, int k) {
 
         for (int i = ii; i < imax; i++) {
           for (int j = jj; j < jmax; j++) {
-            float sum = 0.0f;
+            double sum = 0.0;
 #pragma omp simd reduction(+ : sum)
             for (int p = kk; p < kmax; p++)
               sum += A[i * k + p] * B[p * n + j];
@@ -172,6 +172,17 @@ void matmul_ref(const float *A, const float *B, float *C_ref, int n, int k) {
           }
         }
       }
+    }
+  }
+}
+
+void matmul_ref_s(const float *A, const float *B, float *C_ref, int n, int k) {
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      float sum = 0.0;
+      for (int p = 0; p < k; p++)
+        sum += A[i * k + p] * B[p * n + j];
+      C_ref[i * n + j] = sum;
     }
   }
 }
