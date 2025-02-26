@@ -1,4 +1,5 @@
 # CUDA Kernel for Non-Square Matrix Multiplication
+_(Note first time using cuda, feel free to roast my work)_
 
 My solution to _redacted_ University's homework (Sorry can't leak). The computation considered is
 
