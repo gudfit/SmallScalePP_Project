@@ -8,7 +8,8 @@
 
 #define TILE_WIDTH_PADDED (TILE_WIDTH + 1)
 
-__global__ void transpose_kernel(const float *B, float *BT, int k, int n) {
+__global__ void transpose_kernel(const float *__restrict__ B,
+                                 float *__restrict__ BT, int k, int n) {
   __shared__ float block[BLOCK_DIM][BLOCK_DIM + 1];
 
   int x = blockIdx.x * BLOCK_DIM + threadIdx.x;
@@ -47,17 +48,22 @@ __global__ void matmul_kernel_naive(const float *A, const float *BT, float *C,
   }
 }
 
-__global__ void matmul_kernel_shared(const float *A, const float *BT, float *C,
-                                     int n, int k) {
+__global__ void matmul_kernel_shared(const float *__restrict__ A,
+                                     const float *__restrict__ BT,
+                                     float *__restrict__ C, int n, int k) {
+  /* shared mem tiles for A and BT */
   __shared__ float tile_A[TILE_WIDTH][TILE_WIDTH];
   __shared__ float tile_BT[TILE_WIDTH][TILE_WIDTH];
 
   int row = blockIdx.y * TILE_WIDTH + threadIdx.y;
   int col = blockIdx.x * TILE_WIDTH + threadIdx.x;
+
   float sum = 0.0f;
 
   for (int t = 0; t < (k + TILE_WIDTH - 1) / TILE_WIDTH; ++t) {
+    /* A=[n x k], row-major => A[row, (t*tile_width +threadIdx.x)]*/
     int a_col = t * TILE_WIDTH + threadIdx.x;
+    /* NOTE: tile_A[y][x] => no bank conflicts if read across row */
     if (row < n && a_col < k)
       tile_A[threadIdx.y][threadIdx.x] = A[row * k + a_col];
     else
@@ -81,8 +87,10 @@ __global__ void matmul_kernel_shared(const float *A, const float *BT, float *C,
     C[row * n + col] = sum;
 }
 
-__global__ void matmul_kernel_shared_padded(const float *A, const float *BT,
-                                            float *C, int n, int k) {
+__global__ void matmul_kernel_shared_padded(const float *__restrict__ A,
+                                            const float *__restrict__ BT,
+                                            float *__restrict__ C, int n,
+                                            int k) {
   __shared__ float tile_A[TILE_WIDTH][TILE_WIDTH_PADDED];
   __shared__ float tile_BT[TILE_WIDTH][TILE_WIDTH_PADDED];
 
