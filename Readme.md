@@ -11,10 +11,36 @@ where $A$ is an $n \times k$ matrix, $B$ is a $k \times n$ matrix, and $C$ is an
 
 ![ezgif-66599899878f5](https://github.com/user-attachments/assets/7fc2f895-b4c9-4be4-835e-0fa9a80a4f18)
 
+## My Method
+The key thought process here  lies in exploiting memory access patterns. Unlike OpenMP where SIMD instructions drive performance gains, CUDA kernels benefit tremendously from optimizing memory access through matrix transposition. By transposing matrix $B$ to $B^T$ prior to multiplication, I transform the operation from:
+
+$$C_{ij} = \sum_{p=0}^{k-1} A_{ip} \cdot B_{pj}$$
+
+To a row-row dot product:
+
+$$C_{ij} = \sum_{p=0}^{k-1} A_{ip} \cdot B^T_{jp}$$
+
+Why? Well because:
+
+1. It enables coalesced memory access patterns where threads in a warp access contiguous memory locations
+2. Converts column-wise traversal of $B$ (poor locality) to row-wise traversal of $B^T$ (excellent locality)
+3. Reduces global memory transactions by a factor proportional to warp size
+
+The performance gain can be mathematically modeled as:
+
+$$\text{Speedup} \approx \frac{n \cdot k \cdot n \cdot T_{\text{mem}}}{n \cdot k \cdot n \cdot T_{\text{mem}}/w + n \cdot k \cdot T_{\text{transpose}}}$$
+
+Where $T_{\text{mem}}$ is the memory access time, $w$ is the warp size (typically 32), and $T_{\text{transpose}}$ is the transposition overhead.
+
+_NOTE THIS SPEEDUP MODEL ASSUMES:_
+- That the original matrix multiplication performs $n^2 \cdot k$ memory accesses, each taking $T_{\text{mem}}$.
+- By transposing $B$, accesses are coalesced (effectively reducing the cost by a factor of $w$, the warp size).
+- That there is an added overhead of $(n \cdot k \cdot T_{\text{transpose}})$ for performing the transposition.
+
 
 ## CUDA Implementations
 
-All CUDA kernels utilize floating-point numbers (`floats`) _(you can use double if you care about precision, i personally care about speed)_ and employ row-major matrix storage, following standard C/C++ conventions.
+All CUDA kernels utilize floating-point numbers (`floats`) _(you can use double if you care about precision, I personally care about speed)_ and employ row-major matrix storage, following standard C/C++ conventions.
 
 ### 1. Naive CUDA Kernel
 
@@ -28,7 +54,7 @@ _(Standard Matrix Multiplication)._
 
 ### 2. Shared Memory CUDA Kernel
 
-Of course, this implementation comes with global memory bandwidth, which can be solved by giving it more memory. I personally implemented a shared memory kernel to mitigate these limitations. This approach leverages tiling to load sub-matrices of $A$ and $B$ into faster shared memory. In this configuration, each element of matrix $C$ requires data from an entire row of $A$ and a column of $B$, which are processed in tiles corresponding to the block dimensions of $C$.
+Of course, this implementation comes with global memory bandwidth, which can be solved by giving it more memory. I implemented a shared memory kernel to mitigate these limitations. This approach leverages tiling to load sub-matrices of $A$ and $B$ into faster shared memory. In this configuration, each element of matrix $C$ requires data from an entire row of $A$ and a column of $B$, which are processed in tiles corresponding to the block dimensions of $C$.
 
 The procedure is as follows:
 
