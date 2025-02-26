@@ -85,9 +85,18 @@ sum += tile_A[threadIdx.x][p] * tile_B[p][threadIdx.y];
 Without padding, threads accessing elements within the same bank may cause serialized accesses within a warp, thereby degrading performance.
 
 ## Results
+_(Note this is for the V100 GPU)_
+- **Matrix Size (n):** 4096
+- **Kernel Size (k):** 128
 
-![image](https://github.com/user-attachments/assets/b74871e9-9a73-4f29-a5eb-d5961fe6a960)
+| **Metric**             | **Value**       |
+|------------------------|-----------------|
+| Multiplication Time    | 0.0022723 s     |
+| Performance            | 1928.39 GFLOPS  |
 
+Error rate: 1.(something) x1e-5 _(Which is good enough for me)_
+
+![image](https://github.com/user-attachments/assets/bd8f12ed-64b9-4298-9802-66afc37027c5)
 
 ## Conclusion
 
