@@ -7,9 +7,17 @@ find_package(OpenMP REQUIRED)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(cuda_matmul src/CUDASolMain.cu src/CUDASol.cu)
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
-target_compile_features(cuda_matmul PRIVATE cuda_std_17)
+add_executable(cuda_matmul 
+    src/CUDASolMain.cu 
+    src/CUDASol.cu
+)
+
+target_compile_features(cuda_matmul PRIVATE 
+    cuda_std_17
+)
 
 target_link_libraries(cuda_matmul 
     OpenMP::OpenMP_CXX
@@ -20,7 +28,8 @@ set_target_properties(cuda_matmul PROPERTIES
 )
 
 target_compile_options(cuda_matmul PRIVATE
-    $<$<COMPILE_LANGUAGE:CUDA>:-O3>
+    $<$<AND:$<CONFIG:DEBUG>,$<COMPILE_LANGUAGE:CUDA>>:-G -lineinfo -O0>
+    $<$<AND:$<CONFIG:RELEASE>,$<COMPILE_LANGUAGE:CUDA>>:-O3>
     $<$<COMPILE_LANGUAGE:CXX>:-O4>
 )
 

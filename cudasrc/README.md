@@ -1,6 +1,7 @@
 # CUDASol Matrix Multiplication
 
 This repository implements matrix multiplication using CUDA with three different approaches:
+
 - **Naive Implementation**
 - **Shared Memory Optimization**
 - **Padded Shared Memory Optimization**
@@ -23,11 +24,18 @@ This repository implements matrix multiplication using CUDA with three different
 ### On HPC (High Performance Computing)
 
 1. **Create a Build Directory and Build:**
+
    ```bash
    mkdir build
    cd build
-   cmake ..
+   cmake -DCMAKE_BUILD_TYPE=Release ..
    make
+   ```
+
+   or
+
+   ```
+   make -j 8
    ```
 
 2. **Prepare and Submit Your Job:**
@@ -42,6 +50,7 @@ This repository implements matrix multiplication using CUDA with three different
 ### On a Personal PC
 
 1. **Build the Project:**
+
    ```bash
    make
    ```
@@ -64,5 +73,3 @@ This repository implements matrix multiplication using CUDA with three different
 
 - **Reference Implementation:**  
   A serial version (`matmul_ref`) is provided for validation purposes.
-
-
