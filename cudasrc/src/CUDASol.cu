@@ -4,7 +4,6 @@
 #include <omp.h>
 
 #define TILE_WIDTH 32
-#define BLOCK_SIZE 32
 #define BLOCK_DIM 32
 
 #define TILE_WIDTH_PADDED (TILE_WIDTH + 1)
