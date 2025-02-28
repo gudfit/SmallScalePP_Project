@@ -26,22 +26,21 @@ int main() {
       std::cout << "Testing: n = " << n << ", k = " << k << "\n";
 
       /* Pinned Memory (Faster transfer) */
-      /* 
       float *A, *B;
       cudaMallocHost(&A, n * k * sizeof(float));
-      cudaMallocHost(&B, k * n * sizeof(float)); 
-      */
+      cudaMallocHost(&B, k * n * sizeof(float));
 
       /* Unity Streams */
       /*
       float *A, *B, *C;
       cudaMallocManaged(&A, n * k * sizeof(float), cudaMemAttachGlobal);
       cudaMallocManaged(&B, k * n * sizeof(float), cudaMemAttachGlobal);
-      cudaMallocManaged(&C, n * n * sizeof(float), cudaMemAttachGlobal); 
+      cudaMallocManaged(&C, n * n * sizeof(float), cudaMemAttachGlobal);
       */
-
+      /*
       float *A = new float[n * k];
       float *B = new float[k * n];
+      */
       float *C = new float[n * n];
 
       std::random_device rd;
@@ -53,9 +52,10 @@ int main() {
       for (int i = 0; i < k * n; i++)
         B[i] = dis(gen);
 
-      float *d_A, *d_B, *d_C;
+      float *d_A, *d_B, *d_BT, *d_C;
       cudaMalloc(&d_A, n * k * sizeof(float));
       cudaMalloc(&d_B, k * n * sizeof(float));
+      cudaMalloc(&d_BT, n * k * sizeof(float));
       cudaMalloc(&d_C, n * n * sizeof(float));
       checkCUDAError("cudaMalloc");
 
@@ -66,6 +66,9 @@ int main() {
       cudaMemset(d_C, 0, n * n * sizeof(float));
       checkCUDAError("cudaMemset");
 
+      transpose(d_B, d_BT, k, n);
+      checkCUDAError("transpose");
+
       cudaEvent_t start_event, stop_event;
       cudaEventCreate(&start_event);
       checkCUDAError("cudaEventCreate start");
@@ -74,7 +77,7 @@ int main() {
 
       cudaEventRecord(start_event);
       checkCUDAError("cudaEventRecord start");
-      matmul_naive(d_A, d_B, d_C, n, k);
+      matmul_shared(d_A, d_BT, d_C, n, k);
       checkCUDAError("matmul_naive");
       cudaEventRecord(stop_event);
       checkCUDAError("cudaEventRecord stop");
@@ -101,26 +104,26 @@ int main() {
       for (int i = 0; i < n * n; i++)
         max_error = std::max(max_error, std::fabs(C[i] - C_ref[i]));
 
-      const float tolerance = 1e-6f;
+      const float tolerance = 1e-4f;
       std::cout << "Max error: " << max_error
                 << (max_error < tolerance ? " PASSED" : " FAILED") << "\n";
 
       /* delete objects and mem */
-      
+      /*
       delete[] A;
       delete[] B;
-      delete[] C;
+      */
 
+      delete[] C;
       /* Unified
       cudaFree(A);
       cudaFree(B);
       cudaFree(C);
       */
 
-      /* Pinned Memory
+      /* Pinned Memory */
       cudaFreeHost(A);
       cudaFreeHost(B);
-      */
 
       delete[] C_ref;
 

@@ -51,19 +51,15 @@ __global__ void matmul_kernel_naive(const float *A, const float *BT, float *C,
 __global__ void matmul_kernel_shared(const float *__restrict__ A,
                                      const float *__restrict__ BT,
                                      float *__restrict__ C, int n, int k) {
-  /* shared mem tiles for A and BT */
   __shared__ float tile_A[TILE_WIDTH][TILE_WIDTH];
   __shared__ float tile_BT[TILE_WIDTH][TILE_WIDTH];
 
   int row = blockIdx.y * TILE_WIDTH + threadIdx.y;
   int col = blockIdx.x * TILE_WIDTH + threadIdx.x;
-
   float sum = 0.0f;
 
   for (int t = 0; t < (k + TILE_WIDTH - 1) / TILE_WIDTH; ++t) {
-    /* A=[n x k], row-major => A[row, (t*tile_width +threadIdx.x)]*/
     int a_col = t * TILE_WIDTH + threadIdx.x;
-    /* NOTE: tile_A[y][x] => no bank conflicts if read across row */
     if (row < n && a_col < k)
       tile_A[threadIdx.y][threadIdx.x] = A[row * k + a_col];
     else
@@ -130,43 +126,28 @@ void transpose(const float *B, float *BT, int k, int n) {
   cudaDeviceSynchronize();
 }
 
-void matmul_naive(const float *A, const float *B, float *C, int n, int k) {
-  float *d_BT;
-  cudaMalloc(&d_BT, n * k * sizeof(float));
-  transpose(B, d_BT, k, n);
-
+void matmul_naive(const float *A, const float *BT, float *C, int n, int k) {
   dim3 block(BLOCK_DIM, BLOCK_DIM);
   dim3 grid((n + BLOCK_DIM - 1) / BLOCK_DIM, (n + BLOCK_DIM - 1) / BLOCK_DIM);
-  matmul_kernel_naive<<<grid, block>>>(A, d_BT, C, n, k);
+  matmul_kernel_naive<<<grid, block>>>(A, BT, C, n, k);
   cudaDeviceSynchronize();
-  cudaFree(d_BT);
 }
 
-void matmul_shared(const float *A, const float *B, float *C, int n, int k) {
-  float *d_BT;
-  cudaMalloc(&d_BT, n * k * sizeof(float));
-  transpose(B, d_BT, k, n);
-
+void matmul_shared(const float *A, const float *BT, float *C, int n, int k) {
   dim3 block(TILE_WIDTH, TILE_WIDTH);
   dim3 grid((n + TILE_WIDTH - 1) / TILE_WIDTH,
             (n + TILE_WIDTH - 1) / TILE_WIDTH);
-  matmul_kernel_shared<<<grid, block>>>(A, d_BT, C, n, k);
+  matmul_kernel_shared<<<grid, block>>>(A, BT, C, n, k);
   cudaDeviceSynchronize();
-  cudaFree(d_BT);
 }
 
-void matmul_shared_padded(const float *A, const float *B, float *C, int n,
+void matmul_shared_padded(const float *A, const float *BT, float *C, int n,
                           int k) {
-  float *d_BT;
-  cudaMalloc(&d_BT, n * k * sizeof(float));
-  transpose(B, d_BT, k, n);
-
   dim3 block(TILE_WIDTH, TILE_WIDTH);
   dim3 grid((n + TILE_WIDTH - 1) / TILE_WIDTH,
             (n + TILE_WIDTH - 1) / TILE_WIDTH);
-  matmul_kernel_shared_padded<<<grid, block>>>(A, d_BT, C, n, k);
+  matmul_kernel_shared_padded<<<grid, block>>>(A, BT, C, n, k);
   cudaDeviceSynchronize();
-  cudaFree(d_BT);
 }
 
 /*
