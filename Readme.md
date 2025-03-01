@@ -94,7 +94,7 @@ _(Note this is for the V100 GPU)_
 | Multiplication Time    | 0.00138 s     |
 | Performance            | 3029.39 GFLOPS  |
 
-Error rate: 1.525e-5 _(Which is good enough for me)_
+Error rate: `1.525e-5` _(Which is good enough for me)_
 
 ![image](https://github.com/user-attachments/assets/bd8f12ed-64b9-4298-9802-66afc37027c5)
 
