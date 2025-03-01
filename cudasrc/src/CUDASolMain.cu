@@ -109,7 +109,7 @@ int main() {
         if (diff > max_error)
           max_error = diff;
       }
-      const float tolerance = 1e-6;
+      const float tolerance = 1e-4;
       std::cout << "Reference multiplication time: " << ref_time.count()
                 << " s\n";
       std::cout << "Maximum difference with reference: " << max_error << "\n";

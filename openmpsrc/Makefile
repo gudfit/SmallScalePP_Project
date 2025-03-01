@@ -4,7 +4,7 @@ SRC_DIR = src
 BUILD_DIR = matmul_perf
 
 # Source files
-SOURCES = $(SRC_DIR)/OpenMPSol.cc $(SRC_DIR)/OpenMPSolMain.cc
+SOURCES = $(SRC_DIR)/OpenMPSol.cc $(SRC_DIR)/OpenMPSolMain.cc $(SRC_DIR)/Transpose.cc
 OBJECTS = $(SOURCES:.cc=.o)
 TARGET = $(BUILD_DIR)/matmul
 

@@ -1,10 +1,4 @@
 #include "OpenMPSol.h"
-#include <chrono>
-#include <cmath>
-#include <cstdlib>
-#include <iostream>
-#include <omp.h>
-#include <random>
 
 int main() {
   /* Range of n values and a set of k values */
