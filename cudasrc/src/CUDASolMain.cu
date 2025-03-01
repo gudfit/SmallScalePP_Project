@@ -1,5 +1,6 @@
-#include "CUDASol.cuh"
-#include "Transpose.cuh"
+#include "../includes/CUDASol.cuh"
+#include "../includes/Transpose.cuh"
+
 #include <chrono>
 #include <cmath>
 #include <cstdlib>

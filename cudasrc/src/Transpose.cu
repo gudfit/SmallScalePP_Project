@@ -1,5 +1,6 @@
-#include "CUDASol.cuh"
-#include "Transpose.cuh"
+#include "../includes/CUDASol.cuh"
+#include "../includes/Transpose.cuh"
+
 #include <cuda_runtime.h>
 
 #define TILE_WIDTH 32

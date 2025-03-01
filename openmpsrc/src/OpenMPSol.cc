@@ -1,5 +1,5 @@
-#include "OpenMPSol.h"
-#include "Transpose.h"
+#include "../includes/OpenMPSol.h"
+#include "../includes/Transpose.h"
 
 // --------------------- MATMUL ------------------------- //
 /*

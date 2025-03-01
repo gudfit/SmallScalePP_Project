@@ -1,5 +1,5 @@
-#include "Transpose.h"
-#include "OpenMPSol.h"
+#include "../includes/Transpose.h"
+#include "../includes/OpenMPSol.h"
 
 // --------------------- TRANSPOSE ------------------------- //
 /*

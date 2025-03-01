@@ -1,4 +1,5 @@
-#include "OpenMPSol.h"
+#include "../includes/OpenMPSol.h"
+#include "../includes/Transpose.h"
 
 int main() {
   /* Range of n values and a set of k values */
